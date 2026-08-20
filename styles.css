@@ -1,0 +1,403 @@
+/* ==========================================================================
+   CSS Variables & Foundations
+   ========================================================================== */
+:root {
+    /* Color Palette */
+    --color-bg: #111111;
+    --color-interior: #0a0a0a;
+    --color-text-main: #e0e0e0;
+    --color-text-muted: #888888;
+    
+    /* Folder Colors */
+    --folder-blue: #2D7DD2;
+    --folder-green: #45B649;
+    --folder-red: #E63946;
+    --folder-purple: #7B2D8E;
+    --folder-cream: #F1FAEE;
+    
+    /* Typography */
+    --font-display: 'Anton', sans-serif;
+    --font-serif: 'Playfair Display', serif;
+    --font-sans: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Layout & Geometry */
+    --tab-width: clamp(200px, 30vw, 350px);
+    --tab-height: 48px;
+    --folder-border: 1px solid rgba(255, 255, 255, 0.15);
+    --border-radius: 6px;
+    --extracted-border-width: 40px;
+    
+    /* Animation Timings */
+    --transition-fast: 0.2s ease;
+    --transition-slow: 0.8s cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+.red-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 0.45em;
+  height: 0.45em;
+
+  margin-left: 0.08em;
+
+  border: 3px solid red;
+  border-radius: 50%;
+
+  color: red;
+  font-size: 0.55em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+
+
+
+html, body {
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-bg);
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+}
+
+body.folder-open {
+    overflow: hidden; /* Prevent scrolling when a folder is full screen */
+}
+
+/* ==========================================================================
+   Noise Texture
+   ========================================================================== */
+.noise-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03; /* Extremely fine noise */
+    mix-blend-mode: screen;
+}
+
+/* ==========================================================================
+   Typography & Masthead
+   ========================================================================== */
+.masthead {
+    padding: 2rem 5%;
+    border-bottom: 1px solid #222;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 10;
+}
+
+.masthead-title {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 10vw, 8rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+}
+
+.masthead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   Folder Stack Geometry
+   ========================================================================== */
+.archive-stack {
+    position: relative;
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto 4rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15vh; /* Creates the overlapping stacked look vertically */
+    padding-bottom: 20vh;
+}
+
+.folder {
+    position: relative;
+    width: 100%;
+    /* Ensure folders establish a containing block for their content */
+}
+
+/* Specific Folder Colors */
+.folder--blue { --folder-accent: var(--folder-blue); }
+.folder--green { --folder-accent: var(--folder-green); }
+.folder--red { --folder-accent: var(--folder-red); }
+.folder--purple { --folder-accent: var(--folder-purple); }
+
+/* The clickable tab */
+.folder-tab {
+    appearance: none;
+    background: var(--folder-accent);
+    border: none;
+    height: var(--tab-height);
+    width: var(--tab-width);
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    gap: 1rem;
+    cursor: pointer;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    position: relative;
+    z-index: 2;
+    /* Stagger tabs horizontally based on folder index using inline calc in JS, or defaults here */
+    transform-origin: bottom left;
+}
+
+.folder[data-index="0"] .folder-tab { margin-left: 0%; }
+.folder[data-index="1"] .folder-tab { margin-left: 15%; }
+.folder[data-index="2"] .folder-tab { margin-left: 30%; }
+.folder[data-index="3"] .folder-tab { margin-left: 45%; }
+
+/* Tab Typography */
+.tab-number {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+}
+
+.tab-label {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+/* Tab Hover (Lift effect) */
+.folder:not(.folder--active):not(.folder--hidden) .folder-tab:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.3), 0 0 15px var(--folder-accent);
+}
+
+/* The hidden content wrapper */
+.folder-content {
+    display: none;
+    position: absolute;
+    top: var(--tab-height);
+    left: 0;
+    width: 100%;
+    height: 100%; /* Will be manipulated by GSAP during active state */
+    background: var(--folder-accent);
+    z-index: 1;
+}
+
+/* ==========================================================================
+   Active / Extraction State (Driven by GSAP FLIP)
+   ========================================================================== */
+.folder--active {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 100 !important;
+    margin: 0 !important;
+    padding: var(--extracted-border-width) !important;
+    background: var(--color-interior) !important; /* The black interior */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* In active state, the background is the border */
+.folder--active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--folder-accent);
+    z-index: -1;
+}
+.folder--active::after {
+    content: '';
+    position: absolute;
+    top: var(--extracted-border-width); 
+    left: var(--extracted-border-width); 
+    right: var(--extracted-border-width); 
+    bottom: var(--extracted-border-width);
+    background: var(--color-interior);
+    z-index: -1;
+}
+
+/* Rotate tab to act as a spine */
+.folder--active .folder-tab {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%) rotate(90deg) !important;
+    transform-origin: center center;
+    margin: 0;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    pointer-events: none; /* Disable click when open */
+}
+
+/* Reveal content interior */
+.folder--active .folder-content {
+    display: block;
+    position: static;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow-y: auto;
+    /* Custom scrollbar for interior */
+    scrollbar-width: thin;
+    scrollbar-color: var(--folder-accent) var(--color-interior);
+}
+
+/* Hide other folders */
+.folder--hidden {
+    opacity: 0;
+    pointer-events: none;
+    /* GSAP will animate translateY */
+}
+
+/* ==========================================================================
+   Content Interior Details
+   ========================================================================== */
+.content-interior {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    opacity: 0; /* Handled by GSAP entrance */
+}
+
+.section-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 2rem;
+}
+
+.data-callout {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--folder-accent);
+    border-left: 2px solid var(--folder-accent);
+    padding-left: 1rem;
+    margin-bottom: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.prose {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #cccccc;
+    max-width: 65ch;
+}
+
+.prose p {
+    margin-bottom: 1.5rem;
+}
+
+/* Close Button */
+.close-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    appearance: none;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    padding: 0.5rem;
+    transition: color var(--transition-fast);
+    z-index: 10;
+    opacity: 0; /* Handled by GSAP */
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.site-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 5%;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    border-top: 1px solid #222;
+}
+
+.footer-links {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.footer-links a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.footer-links a:hover {
+    color: var(--folder-cream);
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 768px) {
+    :root {
+        --extracted-border-width: 20px;
+    }
+    
+    .archive-stack {
+        gap: 5vh;
+        padding-bottom: 10vh;
+    }
+    
+    /* Remove horizontal stagger on mobile */
+    .folder[data-index] .folder-tab { margin-left: 0%; width: 90%; max-width: none; }
+    
+    .folder--active .folder-tab {
+        /* On small screens, hide spine or keep it smaller */
+        display: none;
+    }
+    
+    .close-btn {
+        top: 1rem;
+        right: 1rem;
+    }
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
